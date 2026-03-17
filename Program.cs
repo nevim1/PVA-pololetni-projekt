@@ -6,50 +6,55 @@ using BCrypt.Net;
 using var db = new LibraryContext();
 
 Console.WriteLine("Hello, welcome to the library system");
-Console.Write("Start by writing your username for this system: ");
-string username;
+User user = null;
 
-User user;
-
-while(true){
-	username = Console.ReadLine();
-	if(string.IsNullOrEmpty(username)){
-		Console.WriteLine("Your username cannot be empty.");
-		Console.Write("Try again: ");
-		continue;
-	}
-
-	try{
-		user = await db.Users.SingleAsync(x => x.Username == username);
-	} catch(InvalidOperationException){
-		Console.WriteLine("There is no user with that username.");
-		Console.Write("Try again: ");
-		continue;
-	}
-
-	int tries = 3;
-	for(; tries != 0; tries--){
-		Console.Write("Enter your password: ");
-		string password = Console.ReadLine();
-		if(BCrypt.Net.BCrypt.Verify(password ?? "", user.PasswordHash)){
-			break;
-		} else {
-			Console.WriteLine("Wrong password.");
-		}
-	}
-
-	if(tries == 0){
-		Console.WriteLine("Too many bad tries.\nExiting.");
-		return 1;
-		// if you want to redirect user back to login screen, replace return with continue
-	}
-	break;
-}
+GetUser(ref user);
 
 Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
 
 return 0;
 
+void GetUser(ref User user){
+	Console.Write("Start by writing your username for this system: ");
+	string username;
+
+	while(true){
+		username = Console.ReadLine();
+		if(string.IsNullOrEmpty(username)){
+			Console.WriteLine("Your username cannot be empty.");
+			Console.Write("Try again: ");
+			continue;
+		}
+
+		try{
+			user = db.Users.SingleAsync(x => x.Username == username).Result;
+		} catch(InvalidOperationException){
+			Console.WriteLine("There is no user with that username.");
+			Console.Write("Try again: ");
+			continue;
+		}
+
+		int tries = 3;
+		for(; tries != 0; tries--){
+			Console.Write("Enter your password: ");
+			string password = Console.ReadLine();
+			if(BCrypt.Net.BCrypt.Verify(password ?? "", user.PasswordHash)){
+				break;
+			} else {
+				Console.WriteLine("Wrong password.");
+			}
+		}
+
+		if(tries == 0){
+			Console.WriteLine("Too many bad tries.");
+			return;
+			// if you want to redirect user back to login screen, replace return with continue
+		}
+		break;
+	}
+
+	Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
+}
 
 //db.Add(new User{Name = "John", Surname = "Doe", Username = "admin", Employee = true, Email = "john.doe@lib.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123")});
 //await db.SaveChangesAsync();
