@@ -5,14 +5,66 @@ using BCrypt.Net;
 
 using var db = new LibraryContext();
 
-Console.WriteLine("Hello, welcome to the library system");
 User user = null;
 
-GetUser(ref user);
+Console.WriteLine("Hello, welcome to the library system");
 
-Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
+while(true){
+	if(user == null){
+		Console.WriteLine("q - Quit");
+		Console.WriteLine("1 - Log in");
+		Console.WriteLine("2 - Browse books");
+		switch(Console.ReadLine()){
+			case "q":
+				return 0;
+			case "1":
+				GetUser(ref user);
+				Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
+				break;
+			case "2":
+			default:
+				break;
+		}
+	} else if(!user.Employee){
+		Console.WriteLine("q - Quit");
+		Console.WriteLine("1 - Log out");
+		Console.WriteLine("2 - Browse books");
+		Console.WriteLine("3 - Show my profile");
+		switch(Console.ReadLine()){
+			case "q":
+				return 0;
+			case "1":
+				user = null;
+				Console.WriteLine("Logging out");
+				break;
+			case "2":
+			case "3":
+			default:
+				break;
+		}
+	} else {
+		Console.WriteLine("q - Quit");
+		Console.WriteLine("1 - Log out");
+		Console.WriteLine("2 - Browse books");
+		Console.WriteLine("3 - Show my profile");
+		Console.WriteLine("4 - Admin");
+		switch(Console.ReadLine()){
+			case "q":
+				return 0;
+			case "1":
+				user = null;
+				Console.WriteLine("Logging out");
+				break;
+			case "2":
+			case "3":
+			case "4":
+			default:
+				break;
+		}
+	}
+}
 
-return 0;
+// functions
 
 void GetUser(ref User user){
 	Console.Write("Start by writing your username for this system: ");
@@ -52,11 +104,9 @@ void GetUser(ref User user){
 		}
 		break;
 	}
-
-	Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
 }
 
-//db.Add(new User{Name = "John", Surname = "Doe", Username = "admin", Employee = true, Email = "john.doe@lib.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("password123")});
+//db.Add(new User{Name = "John", Surname = "Doe", Username = "admin", Employee = true, Email = "john.doe@lib.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("")});
 //await db.SaveChangesAsync();
 
 // Note: This sample requires the database to be created before running.
