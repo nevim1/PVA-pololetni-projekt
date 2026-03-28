@@ -80,10 +80,12 @@ void GetUser(ref User user){
 
 		try{
 			user = db.Users.SingleAsync(x => x.Username == username).Result;
-		} catch(InvalidOperationException){
-			Console.WriteLine("There is no user with that username.");
-			Console.Write("Try again: ");
-			continue;
+		} catch(Exception ex){
+			if(ex is InvalidOperationException || ex is AggregateException){
+				Console.WriteLine("There is no user with that username.");
+				Console.Write("Try again: ");
+				continue;
+			} else throw;
 		}
 
 		int tries = 3;
