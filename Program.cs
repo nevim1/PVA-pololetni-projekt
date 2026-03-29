@@ -2,6 +2,7 @@
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using BCrypt.Net;
+using System.Text.RegularExpressions;
 
 using var db = new LibraryContext();
 
@@ -13,7 +14,8 @@ while(true){
 	if(user == null){
 		Console.WriteLine("q - Quit");
 		Console.WriteLine("1 - Log in");
-		Console.WriteLine("2 - Browse books");
+		Console.WriteLine("2 - Sign in");
+		Console.WriteLine("3 - Browse books");
 		switch(Console.ReadLine()){
 			case "q":
 				return 0;
@@ -22,22 +24,9 @@ while(true){
 				Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
 				break;
 			case "2":
-			default:
+				user = AddUser(false);
+				Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
 				break;
-		}
-	} else if(!user.Employee){
-		Console.WriteLine("q - Quit");
-		Console.WriteLine("1 - Log out");
-		Console.WriteLine("2 - Browse books");
-		Console.WriteLine("3 - Show my profile");
-		switch(Console.ReadLine()){
-			case "q":
-				return 0;
-			case "1":
-				user = null;
-				Console.WriteLine("Logging out");
-				break;
-			case "2":
 			case "3":
 			default:
 				break;
@@ -47,7 +36,7 @@ while(true){
 		Console.WriteLine("1 - Log out");
 		Console.WriteLine("2 - Browse books");
 		Console.WriteLine("3 - Show my profile");
-		Console.WriteLine("4 - Admin");
+		if(user.Employee) Console.WriteLine("4 - Admin");
 		switch(Console.ReadLine()){
 			case "q":
 				return 0;
@@ -57,7 +46,22 @@ while(true){
 				break;
 			case "2":
 			case "3":
+				Console.WriteLine("Your profile:");
+				Console.WriteLine($"Full name: {user.Name} {user.Surname}");
+				Console.WriteLine($"Email: {user.Email}\n");
+				Console.WriteLine("1 - Change Name");
+				Console.WriteLine("2 - Change Surname");
+				Console.WriteLine("3 - Change Email");
+				Console.WriteLine("4 - Change Password");
+				Console.WriteLine("b - Change Name");
+				break;
 			case "4":
+				if(!user.Employee){
+					Console.WriteLine("No permission");
+					break;
+				}
+				Console.WriteLine("Enough permission");
+				break;
 			default:
 				break;
 		}
@@ -108,16 +112,94 @@ void GetUser(ref User user){
 	}
 }
 
-//db.Add(new User{Name = "John", Surname = "Doe", Username = "admin", Employee = true, Email = "john.doe@lib.com", PasswordHash = BCrypt.Net.BCrypt.HashPassword("")});
-//await db.SaveChangesAsync();
 
-// Note: This sample requires the database to be created before running.
-Console.WriteLine($"Database path: {db.DbPath}.");
+string NewPassword(){
+	Console.Write("Enter new password: ");
+	string password;
+	while(true){
+		password = Console.ReadLine();
+		if(string.IsNullOrEmpty(password)){
+			Console.WriteLine("Your password cannot be empty.");
+			Console.Write("Try again: ");
+			continue;
+		}
+		Console.Write("Retype new password: ");
+		if(Console.ReadLine() == password){
+			break;
+		}
+		Console.WriteLine("Passwords don't match.");
+		Console.Write("Enter again new password: ");
+	}
+	return BCrypt.Net.BCrypt.HashPassword(password);
+}
 
-// Create
-Console.WriteLine("Inserting a new book");
-db.Add(new Book { Name = "R.U.R.", Autor = "Karel Čapek", ReleaseYear = 1928, Genre = "sci-fi", Count = 1, ISBN = "12"});
-await db.SaveChangesAsync();
+
+User AddUser(bool employee){
+	Console.Write("Write your username: ");
+	string username;
+
+	while(true){
+		username = Console.ReadLine();
+		if(string.IsNullOrEmpty(username)){
+			Console.WriteLine("Your username cannot be empty.");
+			Console.Write("Try again: ");
+			continue;
+		}
+
+		try{
+			User _ = db.Users.SingleAsync(x => x.Username == username).Result;
+		} catch(Exception ex){
+			if(ex is InvalidOperationException || ex is AggregateException){
+				break;
+			} else throw;
+		}
+		Console.WriteLine("Sorry, there is anither user with that user name.");
+		Console.Write("Try again: ");
+	}
+
+	string hasedPassword = NewPassword();
+
+	Console.Write("Enter your name: ");
+	string name;
+	while(true){
+		name = Console.ReadLine();
+		if(string.IsNullOrEmpty(name)){
+			Console.WriteLine("Your name cannot be empty.");
+			Console.Write("Try again: ");
+		} else break;
+	}
+
+	Console.Write("Enter your surname: ");
+	string surname;
+	while(true){
+		surname = Console.ReadLine();
+		if(string.IsNullOrEmpty(surname)){
+			Console.WriteLine("Your surname cannot be empty.");
+			Console.Write("Try again: ");
+		} else break;
+	}
+	
+	Console.Write("Enter your email: ");
+	string email;
+	while(true){
+		email = Console.ReadLine();
+		if(string.IsNullOrEmpty(email)){
+			Console.WriteLine("Your email cannot be empty.");
+			Console.Write("Try again: ");
+		} else if(!new Regex(@"^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$").IsMatch(email)){
+			Console.WriteLine("Your email has wrong format.");
+			Console.Write("Try again: ");
+		} else break;
+	}
+
+
+	User newUser = new User{Username = username, Employee = employee, PasswordHash = hasedPassword, Email = email, Name = name, Surname = surname};
+
+	db.Add(newUser);
+	db.SaveChanges();
+	return newUser; // if there will be problems with updating the users data, try returning it by quering it
+}
+
 
 // Read
 Console.WriteLine("Querying for a book");
