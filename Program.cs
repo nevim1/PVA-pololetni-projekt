@@ -49,18 +49,36 @@ while(true){
 				Console.WriteLine("Your profile:");
 				Console.WriteLine($"Full name: {user.Name} {user.Surname}");
 				Console.WriteLine($"Email: {user.Email}\n");
-				Console.WriteLine("1 - Change Name");
-				Console.WriteLine("2 - Change Surname");
-				Console.WriteLine("3 - Change Email");
-				Console.WriteLine("4 - Change Password");
-				Console.WriteLine("b - Change Name");
+				bool goAgain = true;
+				while(goAgain){
+					Console.WriteLine("1 - Change Name");
+					Console.WriteLine("2 - Change Surname");
+					Console.WriteLine("3 - Change Email");
+					Console.WriteLine("4 - Change Password");
+					Console.WriteLine("b - Go back");
+					switch(Console.ReadLine()){
+						case "1":
+							user.Name = GetNonEmpty("name");
+							break;
+						case "2":
+							user.Surname = GetNonEmpty("surname");
+							break;
+						case "3":
+							user.Email = GetNonEmpty("email");
+							break;
+						case "4":
+							user.PasswordHash = NewPassword();
+							break;
+						case "b":
+							goAgain = false;
+							break;
+					}
+				}
 				break;
 			case "4":
 				if(!user.Employee){
-					Console.WriteLine("No permission");
 					break;
 				}
-				Console.WriteLine("Enough permission");
 				break;
 			default:
 				break;
@@ -201,18 +219,14 @@ User AddUser(bool employee){
 }
 
 
-// Read
-Console.WriteLine("Querying for a book");
-var book = await db.Books
-	.OrderBy(b => b.BookId)
-	.FirstAsync();
-
-// Update
-Console.WriteLine("Updating the book");
-book.Name = "Bílá nemoc";
-await db.SaveChangesAsync();
-
-// Delete
-Console.WriteLine("Delete the book");
-db.Remove(book);
-await db.SaveChangesAsync();
+string GetNonEmpty(string what){
+	string giveBack;
+	while(true){
+		giveBack = Console.ReadLine();
+		if(string.IsNullOrEmpty(giveBack)){
+			Console.WriteLine($"Your {what} cannot be empty.");
+			Console.Write("Try again: ");
+		} else break;
+	}
+	return giveBack;
+}
