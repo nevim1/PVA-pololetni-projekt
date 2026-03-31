@@ -45,6 +45,7 @@ while(true){
 				Console.WriteLine("Logging out");
 				break;
 			case "2":
+				break;
 			case "3":
 				Console.WriteLine("Your profile:");
 				Console.WriteLine($"Full name: {user.Name} {user.Surname}");
@@ -64,7 +65,7 @@ while(true){
 							user.Surname = GetNonEmpty("surname");
 							break;
 						case "3":
-							user.Email = GetNonEmpty("email");
+							user.Email = GetValidEmail();
 							break;
 						case "4":
 							user.PasswordHash = NewPassword();
@@ -79,6 +80,35 @@ while(true){
 				if(!user.Employee){
 					break;
 				}
+				
+				goAgain = true;
+				while(goAgain){
+					Console.WriteLine("1 - Manage books");
+					Console.WriteLine("2 - Manage users");
+					Console.WriteLine("b - Go back");
+					switch(Console.ReadLine()){
+						case "1":
+							while(goAgain){
+								Console.WriteLine("1 - Add book");
+								Console.WriteLine("2 - Manage users");
+								Console.WriteLine("b - Go back");
+								switch(Console.ReadLine()){
+									case "2":
+										break;
+									case "b":
+										goAgain = false;
+										break;
+								}
+							}
+							break;
+						case "2":
+							break;
+						case "b":
+							goAgain = false;
+							break;
+					}
+				}
+
 				break;
 			default:
 				break;
@@ -177,26 +207,36 @@ User AddUser(bool employee){
 
 	string hasedPassword = NewPassword();
 
-	Console.Write("Enter your name: ");
-	string name;
-	while(true){
-		name = Console.ReadLine();
-		if(string.IsNullOrEmpty(name)){
-			Console.WriteLine("Your name cannot be empty.");
-			Console.Write("Try again: ");
-		} else break;
-	}
+	string name = GetNonEmpty("name");
 
-	Console.Write("Enter your surname: ");
-	string surname;
+	string surname = GetNonEmpty("surname");
+	
+	string email = GetValidEmail();
+
+
+	User newUser = new User{Username = username, Employee = employee, PasswordHash = hasedPassword, Email = email, Name = name, Surname = surname};
+
+	db.Add(newUser);
+	db.SaveChanges();
+	return newUser; // if there will be problems with updating the users data, try returning it by quering it
+}
+
+
+string GetNonEmpty(string what){
+	Console.Write($"Enter your {what}: ");
+	string giveBack;
 	while(true){
-		surname = Console.ReadLine();
-		if(string.IsNullOrEmpty(surname)){
-			Console.WriteLine("Your surname cannot be empty.");
+		giveBack = Console.ReadLine();
+		if(string.IsNullOrEmpty(giveBack)){
+			Console.WriteLine($"Your {what} cannot be empty.");
 			Console.Write("Try again: ");
 		} else break;
 	}
-	
+	return giveBack;
+}
+
+
+string GetValidEmail(){
 	Console.Write("Enter your email: ");
 	string email;
 	while(true){
@@ -209,24 +249,5 @@ User AddUser(bool employee){
 			Console.Write("Try again: ");
 		} else break;
 	}
-
-
-	User newUser = new User{Username = username, Employee = employee, PasswordHash = hasedPassword, Email = email, Name = name, Surname = surname};
-
-	db.Add(newUser);
-	db.SaveChanges();
-	return newUser; // if there will be problems with updating the users data, try returning it by quering it
-}
-
-
-string GetNonEmpty(string what){
-	string giveBack;
-	while(true){
-		giveBack = Console.ReadLine();
-		if(string.IsNullOrEmpty(giveBack)){
-			Console.WriteLine($"Your {what} cannot be empty.");
-			Console.Write("Try again: ");
-		} else break;
-	}
-	return giveBack;
+	return email;
 }
