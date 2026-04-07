@@ -90,10 +90,15 @@ while(true){
 						case "1":
 							while(goAgain){
 								Console.WriteLine("1 - Add book");
-								Console.WriteLine("2 - Manage users");
+								Console.WriteLine("2 - Modify book");
+								Console.WriteLine("3 - Remove book");
 								Console.WriteLine("b - Go back");
 								switch(Console.ReadLine()){
+									case "1":
+										break;
 									case "2":
+										break;
+									case "3":
 										break;
 									case "b":
 										goAgain = false;
