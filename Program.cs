@@ -256,3 +256,28 @@ string GetValidEmail(){
 	}
 	return email;
 }
+
+
+int GetInt(string what){
+	Console.Write($"Enter {what}: ");
+	int giveBack;
+	while(true){
+		if(int.TryParse(Console.ReadLine(), out giveBack)){
+			break;
+		} else {
+			Console.WriteLine($"{what} must be a number");
+			Console.Write("Try again: ");
+		}
+	}
+	return giveBack;
+}
+
+
+void AddBook(){
+	string name = GetNonEmpty("name");
+	string autor = GetNonEmpty("autor");
+	string isbn = GetNonEmpty("ISBN");
+	int releaseYear = GetInt("Release year");
+
+	db.Add(new Book{Name=name, ISBN=isbn, Autor=autor, ReleaseYear=releaseYear});
+}

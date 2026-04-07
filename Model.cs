@@ -6,8 +6,7 @@ public class Book {
 	public required string Name{ get; set; }
 	public required string Autor{ get; set; }
 	public required int ReleaseYear{ get; set; }
-	public required string Genre{ get; set; }
-	public required int Count{ get; set; }
+	public string Genre{ get; set; } = "";
 	public required string ISBN{ get; set; }
 }
 
