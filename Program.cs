@@ -28,7 +28,9 @@ while(true){
 				Console.WriteLine($"You're now logged in as {user.Name} {user.Surname}");
 				break;
 			case "3":
-			default:
+				BrowseBooks(ref user);
+				break;
+default:
 				break;
 		}
 	} else {
@@ -45,6 +47,7 @@ while(true){
 				Console.WriteLine("Logging out");
 				break;
 			case "2":
+				BrowseBooks(ref user);
 				break;
 			case "3":
 				Console.WriteLine("Your profile:");
@@ -59,10 +62,10 @@ while(true){
 					Console.WriteLine("b - Go back");
 					switch(Console.ReadLine()){
 						case "1":
-							user.Name = GetNonEmpty("name");
+							user.Name = GetNonEmpty("your name");
 							break;
 						case "2":
-							user.Surname = GetNonEmpty("surname");
+							user.Surname = GetNonEmpty("your surname");
 							break;
 						case "3":
 							user.Email = GetValidEmail();
@@ -95,6 +98,7 @@ while(true){
 								Console.WriteLine("b - Go back");
 								switch(Console.ReadLine()){
 									case "1":
+										AddBook();
 										break;
 									case "2":
 										break;
@@ -121,10 +125,145 @@ while(true){
 	}
 }
 
+void BrowseBooks(ref User user){
+	int perPage = 10;
+
+	sorting:
+	int page = 0;
+
+	Console.WriteLine("Sort by:");
+	Console.WriteLine("  1 - Name");
+	Console.WriteLine("  2 - Autor");
+	Console.WriteLine("  3 - Relealse date");
+
+	List<Book> books = new List<Book>();
+	bool goAgain = true;
+	while(goAgain){
+		goAgain = false;
+		switch(Console.ReadLine()){
+			case "1":
+				books = db.Books.OrderBy(b => b.Name).Skip(page*perPage).Take(perPage).ToList();
+				break;
+			case "2":
+				books = db.Books.OrderBy(b => b.Autor).Skip(page*perPage).Take(perPage).ToList();
+				break;
+			case "3":
+				books = db.Books.OrderBy(b => b.ReleaseYear).Skip(page*perPage).Take(perPage).ToList();
+				break;
+			default:
+				goAgain = true;
+				break;
+		}
+	}
+
+	pageView:
+	Console.WriteLine($"\nPage: {page+1}");
+
+	int i = 0;
+	foreach(var book in books){
+		i++;
+		Console.WriteLine($"{i}) {book.Name} {book.Autor} {book.ReleaseYear} {book.Genre} {book.ISBN}");
+	}
+	bool lastPage = i < perPage;
+	Console.WriteLine($"\n1-{(lastPage ? i : perPage)} - More options for book");
+	Console.WriteLine("p - Prevoius page");
+	Console.WriteLine("n - Next page");
+	Console.WriteLine("s - Change sorting");
+	Console.WriteLine("b - Go back");
+
+	string pick = Console.ReadLine();
+	switch(pick){
+		case "p":
+			page = page == 0 ? 0 : page - 1;
+			break;
+		case "n":
+			page = lastPage ? page : page + 1;
+			break;
+		case "s":
+			goto sorting;
+		case "b":
+			return;
+		default:
+			int bookIdx;
+			if(Int32.TryParse(pick, out bookIdx)){
+				bookIdx--;
+				if(bookIdx <= perPage){
+					Book book = books[bookIdx];
+					Console.WriteLine($"Name: {book.Name}");
+					Console.WriteLine($"Autor: {book.Autor}");
+					Console.WriteLine($"Release year: {book.ReleaseYear}");
+					Console.WriteLine($"ISBN: {book.ISBN}");
+					
+					goAgain = true;
+					while(goAgain){
+						Console.WriteLine("1 - Borrow");
+						Console.WriteLine("2 - Reserve");
+						if(user.Employee){
+							Console.WriteLine("3 - Edit");
+							Console.WriteLine("4 - Remove");
+						}
+						Console.WriteLine("b - Back");
+
+						switch(Console.ReadLine()){
+							case "1":
+								break;
+							case "2":
+								break;
+							case "3":
+								while(goAgain){
+									Console.WriteLine("1 - Edit name");
+									Console.WriteLine("2 - Edit autor");
+									Console.WriteLine("3 - Edit release year");
+									Console.WriteLine("4 - Edit ISBN");
+									Console.WriteLine("b - Go back");
+									switch(Console.ReadLine()){
+										case "1":
+											book.Name = GetNonEmpty("name");
+											break;
+										case "2":
+											book.Autor = GetNonEmpty("autor");
+											break;
+										case "3":
+											book.ReleaseYear = GetInt("release year");
+											break;
+										case "4":
+											book.ISBN = GetNonEmpty("ISBN");
+											break;
+										case "b":
+											goAgain = false;
+											break;
+										default:
+											break;
+									}
+								}
+								goAgain = true;
+								break;
+							case "4":
+								Console.WriteLine("Are you sure? [N/y]");
+								if(Regex.IsMatch(Console.ReadLine(), @"[Yy][Ee][Ss]")){
+									db.Remove(book);
+									db.SaveChanges();
+									goAgain = false;
+								}
+								break;
+							case "b":
+								goAgain = false;
+								break;
+							default:
+								break;
+						}
+					}
+				}
+			}
+			break;
+	}
+	goto pageView;
+}
+
 // functions
 
 void GetUser(ref User user){
-	Console.Write("Start by writing your username for this system: ");
+	Console.Write("Write your username for this system: ");
 	string username;
 
 	while(true){
@@ -212,9 +351,9 @@ User AddUser(bool employee){
 
 	string hasedPassword = NewPassword();
 
-	string name = GetNonEmpty("name");
+	string name = GetNonEmpty("your name");
 
-	string surname = GetNonEmpty("surname");
+	string surname = GetNonEmpty("your surname");
 	
 	string email = GetValidEmail();
 
@@ -228,12 +367,12 @@ User AddUser(bool employee){
 
 
 string GetNonEmpty(string what){
-	Console.Write($"Enter your {what}: ");
+	Console.Write($"Enter {what}: ");
 	string giveBack;
 	while(true){
 		giveBack = Console.ReadLine();
 		if(string.IsNullOrEmpty(giveBack)){
-			Console.WriteLine($"Your {what} cannot be empty.");
+			Console.WriteLine($"{CapitalizeFirstLetter(what)} cannot be empty.");
 			Console.Write("Try again: ");
 		} else break;
 	}
@@ -280,4 +419,14 @@ void AddBook(){
 	int releaseYear = GetInt("Release year");
 
 	db.Add(new Book{Name=name, ISBN=isbn, Autor=autor, ReleaseYear=releaseYear});
+	db.SaveChanges();
+}
+
+
+string CapitalizeFirstLetter(string s){
+	if (String.IsNullOrEmpty(s))
+		return s;
+	if (s.Length == 1)
+		return s.ToUpper();
+	return s.Remove(1).ToUpper() + s.Substring(1);
 }
