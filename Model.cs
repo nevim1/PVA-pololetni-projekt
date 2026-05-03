@@ -17,15 +17,24 @@ public class User {
 	public required string Surname{ get; set; }
 	public required string Email{ get; set; }
 	public required bool Employee{ get; set; }
-	public List<Borrow> BorrowedBooks { get; } = [];
 }
 
 public class Borrow {
-	public int BorrowId { get; set; }
+	public int BorrowId{ get; set; }
 	public required Book BorrowedBook{ get; set; }
-	public required DateTime DateBorrowed{ get; set; }
-	public required DateTime ReturnDate{ get; set; }
+	public required User Borrower{ get; set; }
+	public DateTime DateBorrowed{ get; set; }
+	public DateTime DateReserved{ get; set; }
+	public DateTime ReturnDate{ get; set; }
 	public DateTime DateReturned{ get; set; }
+	public required BorrowStatus Status{ get; set; }
+	public required bool CanExtend{ get; set; }
+}
+
+public enum BorrowStatus {
+	Borrowed,
+	Reserved,
+	Returned
 }
 
 
