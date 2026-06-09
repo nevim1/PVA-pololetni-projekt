@@ -55,10 +55,13 @@ default:
 				Console.WriteLine($"Email: {user.Email}\n");
 				bool goAgain = true;
 				while(goAgain){
+					//TODO: add option to show currently borrowed or reserved books
 					Console.WriteLine("1 - Change Name");
 					Console.WriteLine("2 - Change Surname");
 					Console.WriteLine("3 - Change Email");
 					Console.WriteLine("4 - Change Password");
+					Console.WriteLine("5 - Show borrowed books");
+					Console.WriteLine("6 - Show reserved books");
 					Console.WriteLine("b - Go back");
 					switch(Console.ReadLine()){
 						case "1":
@@ -72,6 +75,24 @@ default:
 							break;
 						case "4":
 							user.PasswordHash = NewPassword();
+							break;
+						case "5":
+							User userCapture = user;
+							var borrows = db.Borrows.Where(b => b.Borrower == userCapture).Where(b => b.Status == BorrowStatus.Borrowed).ToList();
+								if(borrows.Count == 0){
+									Console.WriteLine("You have no borrowed books");
+							} else {
+								Paginate(borrows);
+							}
+							break;
+						case "6":
+							userCapture = user;
+							borrows = db.Borrows.Where(b => b.Borrower == userCapture).Where(b => b.Status == BorrowStatus.Reserved).ToList();
+								if(borrows.Count == 0){
+									Console.WriteLine("You have no reserved books");
+							} else {
+								Paginate(borrows);
+							}
 							break;
 						case "b":
 							goAgain = false;
@@ -106,6 +127,36 @@ default:
 			default:
 				break;
 		}
+	}
+}
+
+void Paginate(List<Borrow> borrows){
+	int perPage = 10;
+
+	int page = 0;
+
+	Console.WriteLine($"\nPage: {page+1}");
+
+	int i = 0;
+	foreach(var borrow in borrows){
+		i++;
+		Console.WriteLine($"{i}) {borrow.DateBorrowed} {borrow.DateReserved} {borrow.DateReturned} {borrow.ReturnDate}");
+	}
+	bool lastPage = i < perPage;
+	Console.WriteLine("p - Prevoius page");
+	Console.WriteLine("n - Next page");
+	Console.WriteLine("b - Go back");
+
+	string pick = Console.ReadLine();
+	switch(pick){
+		case "p":
+			page = page == 0 ? 0 : page - 1;
+			break;
+		case "n":
+			page = lastPage ? page : page + 1;
+			break;
+		case "b":
+			return;
 	}
 }
 
@@ -180,33 +231,78 @@ void BrowseBooks(ref User user){
 
 					goAgain = true;
 					while(goAgain){
-						Console.WriteLine("1 - Borrow");
-						Console.WriteLine("2 - Reserve");
-						Console.WriteLine("3 - Return");
-						//TODO: add Extend option and logic
-						if(user.Employee){
-							Console.WriteLine("4 - Edit");
-							Console.WriteLine("5 - Remove");
+						if(user != null){
+							Console.WriteLine("1 - Borrow/Extend");
+							Console.WriteLine("2 - Reserve");
+							Console.WriteLine("3 - Return");
+								if(user.Employee){
+									Console.WriteLine("4 - Edit");
+									Console.WriteLine("5 - Remove");
+								}
 						}
 						Console.WriteLine("b - Back");
 
+						User userCapture;
 						switch(Console.ReadLine()){
 							case "1":
-								//TODO: check if there is already exiting Borrow for this user in reserved state
-								//TODO: chick for existing reservations to correctly set CanExtend
-								db.Borrows.Add(new Borrow{BorrowedBook = book, Borrower = user, DateBorrowed = DateTime.Now, ReturnDate = DateTime.Now.AddMonths(1), Status = BorrowStatus.Borrowed, CanExtend = true});
+								if(user == null) break;
+								try{
+									userCapture = user;
+									var reservedBorrow = db.Borrows
+										.Where(b => b.BorrowedBook == book)
+										.Where(b => b.Borrower == userCapture)
+										.Single();
+									if(reservedBorrow.Status == BorrowStatus.Borrowed){
+										if(reservedBorrow.CanExtend){
+											reservedBorrow.ReturnDate = reservedBorrow.ReturnDate.AddMonths(1);
+											Console.WriteLine($"The return date was extened to {reservedBorrow.ReturnDate}");
+										} else {
+											Console.WriteLine("Sorry, somebody else has this book reserved.");
+										}
+									}else if(reservedBorrow.Status == BorrowStatus.Reserved){
+											reservedBorrow.Status = BorrowStatus.Borrowed;
+											reservedBorrow.DateBorrowed = DateTime.Now;
+											reservedBorrow.ReturnDate = DateTime.Now.AddMonths(1);
+										}
+								}catch(Exception ex){
+									if(ex is InvalidOperationException){
+										bool extend = false;
+										try{
+											var _ =db.Borrows
+												.Where(b => b.BorrowedBook == book)
+												.Where(b => b.Status == BorrowStatus.Reserved)
+												.Single();
+										} catch(Exception e){
+											if(ex is InvalidOperationException){
+												extend = true;
+											} else throw e;
+										}
+
+										db.Borrows.Add(new Borrow{BorrowedBook = book, Borrower = user, DateBorrowed = DateTime.Now, ReturnDate = DateTime.Now.AddMonths(1), Status = BorrowStatus.Borrowed, CanExtend = extend});
+									} else throw ex;
+								}
+								db.SaveChanges();
 								break;
 							case "2":
-								var colidingBorrow = db.Borrows
-									.Where(b => b.BorrowedBook == book)
-									.Where(b => b.Status == BorrowStatus.Borrowed)
-									.Single();
-								colidingBorrow.CanExtend = false;
-								
+								if(user == null) break;
+								try{
+									var colidingBorrow = db.Borrows
+										.Where(b => b.BorrowedBook == book)
+										.Where(b => b.Status == BorrowStatus.Borrowed)
+										.Single();
+									colidingBorrow.CanExtend = false;
+								}catch(Exception ex){
+									if(ex is not InvalidOperationException){
+										throw ex;
+									}
+								}
+
 								db.Borrows.Add(new Borrow{BorrowedBook = book, Borrower = user, DateReserved = DateTime.Now, Status = BorrowStatus.Reserved, CanExtend = true});
+								db.SaveChanges();
 								break;
 							case "3":
-								User userCapture = user;
+								if(user == null) break;
+								userCapture = user;
 								var borrow = db.Borrows
 									.Where(b => b.BorrowedBook == book)
 									.Where(b => b.Borrower == userCapture)
@@ -216,6 +312,9 @@ void BrowseBooks(ref User user){
 								db.SaveChanges();
 								break;
 							case "4":
+								if(user == null) break;
+								if(!user.Employee) break;
+
 								while(goAgain){
 									Console.WriteLine("1 - Edit name");
 									Console.WriteLine("2 - Edit autor");
@@ -245,6 +344,9 @@ void BrowseBooks(ref User user){
 								goAgain = true;
 								break;
 							case "5":
+								if(user == null) break;
+								if(!user.Employee) break;
+
 								Console.WriteLine("Are you sure? [N/y]");
 								if(Regex.IsMatch(Console.ReadLine(), @"[Yy][Ee][Ss]")){
 									db.Remove(book);
@@ -351,7 +453,7 @@ User AddUser(bool employee){
 				break;
 			} else throw;
 		}
-		Console.WriteLine("Sorry, there is anither user with that user name.");
+		Console.WriteLine("Sorry, there is another user with that user name.");
 		Console.Write("Try again: ");
 	}
 
